@@ -1,12 +1,13 @@
-# Requires "Run as Administrator" to read process modules
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Warning "Please run PowerShell as an Administrator to see process modules."
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Warning "Please run PowerShell as an Administrator."
     Break
 }
 
-Write-Host "Scanning active WUDFHost processes for loaded user-mode drivers..." -ForegroundColor Cyan
+Get-PnpDevice | Where-Object { $_.Status -eq 'Error' -or $_.ConfigManagerErrorCode -eq 22 } | Select-Object FriendlyName, InstanceId, Status
 
-# Get all running instances of WUDFHost
+Write-Host "Scanning WUDFHost processes..." -ForegroundColor Cyan
+
 $wudfProcesses = Get-Process -Name "WUDFHost" -ErrorAction SilentlyContinue
 
 if (-not $wudfProcesses) {
@@ -18,39 +19,34 @@ $results = @()
 
 foreach ($proc in $wudfProcesses) {
     try {
-        # Filter loaded modules for paths typical of User-Mode drivers
         $driverModules = $proc.Modules | Where-Object {
-            $_.FileName -match "System32\\drivers\\UMDF" -or
-            $_.FileName -match "System32\\DriverStore\\FileRepository"
+            $_.FileName -match "DriverStore\\FileRepository"
         }
 
-        if ($driverModules) {
-            foreach ($mod in $driverModules) {
+        foreach ($mod in $driverModules) {
+            if ($mod.FileName -match "FileRepository\\([^\\]+)") {
+                $infFolder = $matches[1]
+
+                # Try to extract actual INF file name
+                $infName = ($infFolder -split ".inf_")[0]
+
                 $results += [PSCustomObject]@{
-                    ProcessId       = $proc.Id
-                    DriverName      = $mod.ModuleName
-                    FileDescription = $mod.FileVersionInfo.FileDescription
-                    Company         = $mod.FileVersionInfo.CompanyName
-                    FilePath        = $mod.FileName
+                    ProcessId = $proc.Id
+                    InfFile   = $infName
                 }
-            }
-        } else {
-             $results += [PSCustomObject]@{
-                ProcessId       = $proc.Id
-                DriverName      = "[Unknown or System Core]"
-                FileDescription = "N/A"
-                Company         = "N/A"
-                FilePath        = "No UMDF/DriverStore modules detected in this instance"
+
             }
         }
     } catch {
-        Write-Warning "Access denied inspecting PID $($proc.Id). Are you running as Admin?"
+        Write-Warning "Access denied inspecting PID $($proc.Id)"
     }
-}
+    $Deviceid = Get-PnpDevice | Where-Object { $_.Service -like $infName } | Select-Object InstanceId
+    $Deviceid= ($Deviceid -split "=")[1]
+    $Deviceid= ($Deviceid -split "}")[0]
+    pnputil.exe /disable-device $Deviceid /force
 
-# Display results cleanly
-if ($results.Count -gt 0) {
-    $results | Sort-Object ProcessId | Format-Table -AutoSize
-} else {
-    Write-Host "Could not map any specific drivers to the running WUDFHost processes."
+}
+if ($results.Count -eq 0) {
+    Write-Host "No INF files found."
+    exit
 }
