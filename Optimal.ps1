@@ -34,11 +34,6 @@ $KeepServices = @(
         $name = $_.Name.Trim()
         $KeepServices -notcontains $name -and $_.Status -eq 'Running' 
     } | Stop-Service
-    
     Start-Sleep -Seconds 5
 }
-1..6 | ForEach-Object {
-    taskkill /F /IM WUDFHost.exe 2>$null       
-    Start-Sleep -Seconds 3
-    }
 sndvol
