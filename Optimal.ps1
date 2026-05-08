@@ -1,6 +1,8 @@
 $ErrorActionPreference = 'silentlycontinue'
 $ConfirmPreference = "None"
-# Define the "Safe List" - No services in this list will be touched
+Add-Type -AssemblyName System.Windows.Forms
+$FileBrowser = New-Object System.Windows.Forms.OpenFileDialog
+$null = $FileBrowser.ShowDialog() 
 $KeepServices = @(
     "Audiosrv",                  # Windows Audio
     "Brokerinfrastructure",      # Background Tasks Infrastructure
@@ -22,10 +24,9 @@ $KeepServices = @(
     "WlanSvc"                   # Wi-Fi AutoConfig
     "EventSystem"
 )
+
 1..5 | ForEach-Object {
-    Taskkill /F /IM explorer.exe 2>$null
-    Stop-Process -Name "Searchhost"
-    taskkill /F /T /IM sihost.exe 2>$null       
+    taskkill /F /IM explorer.exe 2>$null
     Get-Service | Where-Object { 
         $name = $_.Name.Trim()
         $KeepServices -notcontains $name -and $_.Status -eq 'Running' 
@@ -35,8 +36,13 @@ $KeepServices = @(
     taskkill /F /FI "SERVICES eq BFE" 2>$null
     taskkill /F /FI "SERVICES eq mpssvc" 2>$null
     taskkill /F /FI "SERVICES eq WinHttpAutoProxySvc" 2>$null
-    taskkill /F /FI "SERVICES eq SecurityHealthService" 2>$null
-    taskkill /F /IM fontdrvhost.exe 2>$null   
+    taskkill /F /IM fontdrvhost.exe 2>$null
+    $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    Get-Process -IncludeUserName | Where-Object {
+        $_.UserName -eq $user -and $_.Id -ne $PID
+    } | Stop-Process
     Get-Service -name EventSystem | Stop-Service
-sndvol
-
+if ($FileBrowser.FileName) {
+    Invoke-Item $FileBrowser.FileName
+    Start-Process sndvol
+}
