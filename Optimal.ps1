@@ -23,25 +23,30 @@ $KeepServices = @(
     "Wcmsvc",                    # Windows Connection Manager
     "WlanSvc"                   # Wi-Fi AutoConfig
     "EventSystem"
+    "bthserv"
 )
 
 1..5 | ForEach-Object {
     taskkill /F /IM explorer.exe 2>$null
     Get-Service | Where-Object { 
         $name = $_.Name.Trim()
-        $KeepServices -notcontains $name -and $_.Status -eq 'Running' 
-    } | Stop-Service
-    Start-Sleep -Seconds 5
+        $KeepServices -notcontains $name 
+    } | ForEach-Object {
+        Stop-Service -InputObject $_
+    }
 }
     taskkill /F /FI "SERVICES eq BFE" 2>$null
     taskkill /F /FI "SERVICES eq mpssvc" 2>$null
     taskkill /F /FI "SERVICES eq WinHttpAutoProxySvc" 2>$null
     taskkill /F /IM fontdrvhost.exe 2>$null
-    $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-    Get-Process -IncludeUserName | Where-Object {
-        $_.UserName -eq $user -and $_.Id -ne $PID
-    } | Stop-Process
-    Get-Service -name EventSystem | Stop-Service
+Get-CimInstance Win32_Process | ForEach-Object {
+    $ownerInfo = Invoke-CimMethod -InputObject $_ -MethodName "GetOwner" -ErrorAction SilentlyContinue
+    if ($ownerInfo.User -eq $env:USERNAME -and $_.ProcessId -ne $PID -and $_.ParentProcessId -ne $PID) {
+        Stop-Process -Id $_.ProcessId
+    }
+}
+Get-Service -name EventSystem | Stop-Service
+
 if ($FileBrowser.FileName) {
     Invoke-Item $FileBrowser.FileName
     Start-Process sndvol
