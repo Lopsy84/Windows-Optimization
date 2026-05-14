@@ -69,10 +69,10 @@ foreach ($service in $services) {
 }
 
 reg add HKEY_LOCAL_MACHINE\System\ControlSet001\Control\FeatureManagement\Overrides\8\1387020943 /v EnabledStateOptions /t REG_DWORD /d 0
-reg add HKEY_LOCAL_MACHINE\System\ControlSet001\Control\FeatureManagement\Overrides\8\1387020943 /v EnabledState/t REG_DWORD /d 1
-reg add HKEY_LOCAL_MACHINE\System\ControlSet001\Control\FeatureManagement\Overrides\8\1387020943 /v Variant/t REG_DWORD /d 0
-reg add HKEY_LOCAL_MACHINE\System\ControlSet001\Control\FeatureManagement\Overrides\8\1387020943 /v VariantPayload/t REG_DWORD /d 0
-reg add HKEY_LOCAL_MACHINE\System\ControlSet001\Control\FeatureManagement\Overrides\8\1387020943 /v VariantPayloadKind/t REG_DWORD /d 0
+reg add HKEY_LOCAL_MACHINE\System\ControlSet001\Control\FeatureManagement\Overrides\8\1387020943 /v EnabledState /t REG_DWORD /d 1
+reg add HKEY_LOCAL_MACHINE\System\ControlSet001\Control\FeatureManagement\Overrides\8\1387020943 /v Variant /t REG_DWORD /d 0
+reg add HKEY_LOCAL_MACHINE\System\ControlSet001\Control\FeatureManagement\Overrides\8\1387020943 /v VariantPayload /t REG_DWORD /d 0
+reg add HKEY_LOCAL_MACHINE\System\ControlSet001\Control\FeatureManagement\Overrides\8\1387020943 /v VariantPayloadKind /t REG_DWORD /d 0
 
 
 #Safe to disable wuauserv,FontCache,NPSMSvc,Wersvc,winmgmt,DPS
